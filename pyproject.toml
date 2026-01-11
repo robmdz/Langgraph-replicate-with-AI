@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "file-agent"
+version = "0.1.0"
+description = "A CLI application that uses an AI agent to create, edit, and display files through natural language commands"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+license = "MIT"
+packages = [{include = "file_agent"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langchain = "^0.1.0"
+langgraph = "^0.0.20"
+langchain-openai = "^0.0.5"
+typer = {extras = ["all"], version = "^0.9.0"}
+rich = "^13.7.0"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+black = "^23.12.0"
+mypy = "^1.7.0"
+ruff = "^0.1.8"
+
+[tool.poetry.scripts]
+file-agent = "file_agent.cli:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"

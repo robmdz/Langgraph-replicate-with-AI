@@ -14,7 +14,16 @@ from file_agent.prompts import get_system_prompt
 
 
 class AgentState(TypedDict):
-    """State for the agent graph."""
+    """State for the agent graph.
+
+    This TypedDict defines the state structure used throughout the LangGraph workflow.
+    The state maintains conversation history and context between agent invocations.
+
+    Attributes:
+        messages: List of conversation messages (HumanMessage, AIMessage, ToolMessage, etc.)
+            that maintain the full conversation context. This includes user prompts,
+            agent responses, and tool execution results.
+    """
 
     messages: Annotated[list[BaseMessage], "The conversation messages"]
 
@@ -24,12 +33,23 @@ class AgentState(TypedDict):
 def create_file_tool(path: str, content: str) -> str:
     """Create a new file with the specified content.
 
+    This tool allows the agent to create new files in the current working directory
+    or subdirectories. The path is validated to prevent directory traversal attacks,
+    and file size is checked against configured limits.
+
     Args:
         path: Path where the file should be created (relative to current directory).
-        content: Content to write to the file.
+            Parent directories will be created automatically if they don't exist.
+        content: Content to write to the file. Must be UTF-8 encodable.
 
     Returns:
-        Success or error message.
+        A string message indicating success or failure. On success, returns the
+        success message from the file operation. On failure, returns an error
+        message prefixed with "Error:".
+
+    Note:
+        The file path is validated using validate_path() which prevents directory
+        traversal attacks. File size must not exceed MAX_FILE_SIZE configuration.
     """
     result = create_file(path, content)
     if result["success"]:
@@ -42,13 +62,25 @@ def create_file_tool(path: str, content: str) -> str:
 def edit_file_tool(path: str, content: str, mode: Literal["replace", "append"] = "replace") -> str:
     """Edit an existing file by replacing or appending content.
 
+    This tool allows the agent to modify existing files. The file must exist before
+    editing. In append mode, the new content is added with a newline separator.
+
     Args:
-        path: Path to the file to edit (relative to current directory).
-        content: Content to add or replace.
-        mode: "replace" to overwrite the file, "append" to add at the end.
+        path: Path to the file to edit (relative to current directory). The file
+            must already exist.
+        content: Content to add or replace. In replace mode, this becomes the
+            entire file content. In append mode, this is added to the end.
+        mode: Edit mode - "replace" to overwrite the entire file, "append" to add
+            content at the end. Defaults to "replace".
 
     Returns:
-        Success or error message.
+        A string message indicating success or failure. On success, returns the
+        success message from the file operation. On failure, returns an error
+        message prefixed with "Error:".
+
+    Note:
+        The file must exist before editing. File size after edit must not exceed
+        MAX_FILE_SIZE configuration. Path validation prevents directory traversal.
     """
     result = edit_file(path, content, mode)
     if result["success"]:
@@ -61,11 +93,21 @@ def edit_file_tool(path: str, content: str, mode: Literal["replace", "append"] =
 def show_file_tool(path: str) -> str:
     """Display the contents of a file.
 
+    This tool allows the agent to read and display file contents. The file must
+    exist and not exceed the maximum file size limit. The contents are returned
+    as a formatted string for the agent to process.
+
     Args:
         path: Path to the file to display (relative to current directory).
+            The file must exist.
 
     Returns:
-        File contents or error message.
+        A formatted string containing the file contents prefixed with the file path,
+        or an error message prefixed with "Error:" if the operation fails.
+
+    Note:
+        File size must not exceed MAX_FILE_SIZE configuration. Path validation
+        prevents directory traversal. The file must exist before reading.
     """
     result = show_file(path)
     if result["success"]:
@@ -78,11 +120,26 @@ def show_file_tool(path: str) -> str:
 def delete_file_tool(path: str) -> str:
     """Delete a file. Use this carefully as the operation cannot be undone.
 
+    This tool allows the agent to permanently delete files. The deletion is
+    automatically confirmed (confirm=True) when called through this tool, so
+    the agent should use this carefully.
+
     Args:
         path: Path to the file to delete (relative to current directory).
+            The file must exist.
 
     Returns:
-        Success or error message.
+        A string message indicating success or failure. On success, returns the
+        success message from the file operation. On failure, returns an error
+        message prefixed with "Error:".
+
+    Warning:
+        This operation is irreversible. The file will be permanently deleted
+        from the filesystem. Use with caution.
+
+    Note:
+        Path validation prevents directory traversal. The file must exist before
+        deletion. Only files can be deleted, not directories.
     """
     result = delete_file(path, confirm=True)
     if result["success"]:
@@ -95,11 +152,23 @@ def delete_file_tool(path: str) -> str:
 def list_directory_tool(path: str | None = None) -> str:
     """List the contents of a directory.
 
+    This tool allows the agent to explore the directory structure. It returns
+    a formatted listing of files and subdirectories with their sizes.
+
     Args:
-        path: Path to directory to list. If None, lists current directory.
+        path: Path to directory to list. If None, lists the current working
+            directory. The path must exist and be a directory.
 
     Returns:
-        Directory listing or error message.
+        A formatted string containing the directory listing with file/directory
+        names and sizes, or an error message prefixed with "Error:" if the
+        operation fails. Empty directories return a message indicating the
+        directory is empty.
+
+    Note:
+        Path validation prevents directory traversal. The path must exist and
+        be a directory (not a file). Files are displayed with their sizes,
+        directories are marked with a folder icon.
     """
     result = list_directory(path)
     if result["success"]:
@@ -133,11 +202,21 @@ tool_node = ToolNode(tools)
 def should_continue(state: AgentState) -> Literal["tools", "end"]:
     """Determine whether to continue to tools or end.
 
+    This function implements the conditional logic for the LangGraph workflow.
+    It examines the last message in the conversation to determine if the agent
+    has requested tool execution or is ready to end.
+
     Args:
-        state: Current agent state.
+        state: Current agent state containing the conversation messages.
 
     Returns:
-        Next node to execute.
+        "tools" if the last message contains tool calls that need to be executed,
+        "end" if the agent has completed its response without tool calls.
+
+    Note:
+        This function is used as a conditional edge function in the LangGraph
+        workflow. It checks for the presence of tool_calls attribute on the
+        last message to determine the next step.
     """
     messages = state["messages"]
     last_message = messages[-1]
@@ -153,11 +232,29 @@ def should_continue(state: AgentState) -> Literal["tools", "end"]:
 def create_agent(flags: dict[str, bool] | None = None) -> StateGraph:
     """Create a LangGraph agent for file operations.
 
+    This function initializes and compiles a LangGraph workflow for the file
+    operations agent. It sets up the LLM with tools, configures the system prompt,
+    and builds the agent graph with appropriate nodes and edges.
+
     Args:
-        flags: Optional dictionary of command flags to modify system prompt.
+        flags: Optional dictionary of command flags (e.g., {"brief": True,
+            "flashcards": True}) to modify the system prompt. These flags
+            customize the agent's behavior for different output formats and
+            complexity levels.
 
     Returns:
-        A compiled LangGraph agent.
+        A compiled StateGraph instance ready to be invoked with user prompts.
+        The graph includes an agent node and a tools node, with conditional
+        edges that route between them based on tool call requirements.
+
+    Raises:
+        ValueError: If configuration validation fails (e.g., missing API key).
+
+    Note:
+        The agent uses OpenAI's ChatOpenAI model (gpt-4o by default) with tools
+        bound to it. The system prompt is customized based on flags. The workflow
+        loops between agent and tools nodes until the agent completes without
+        requesting tool execution.
     """
     # Validate configuration
     config.validate()
@@ -178,11 +275,22 @@ def create_agent(flags: dict[str, bool] | None = None) -> StateGraph:
     def call_model(state: AgentState) -> AgentState:
         """Call the LLM with the current state.
 
+        This nested function is used as the agent node in the LangGraph workflow.
+        It invokes the LLM with the current conversation state, ensuring the
+        system prompt is included if not already present.
+
         Args:
-            state: Current agent state.
+            state: Current agent state containing conversation messages.
 
         Returns:
-            Updated state with LLM response.
+            Updated state dictionary with a new message containing the LLM's
+            response. The response may include tool calls if the agent decides
+            to use tools.
+
+        Note:
+            The system prompt is automatically prepended if the first message
+            is not already a SystemMessage. The LLM has tools bound to it, so it
+            can decide to call tools based on the conversation context.
         """
         messages = state["messages"]
 
@@ -223,12 +331,30 @@ def create_agent(flags: dict[str, bool] | None = None) -> StateGraph:
 def run_agent(prompt: str, flags: dict[str, bool] | None = None) -> str:
     """Run the agent with a user prompt.
 
+    This is the main entry point for executing the agent workflow. It creates
+    an agent instance, initializes the state with the user's prompt, runs the
+    workflow, and extracts the final response.
+
     Args:
-        prompt: User's natural language prompt.
-        flags: Optional dictionary of command flags.
+        prompt: User's natural language prompt describing the desired file
+            operation or learning assistance request.
+        flags: Optional dictionary of command flags (e.g., {"brief": True,
+            "cornell": True}) to customize the agent's behavior and output format.
 
     Returns:
-        Final response from the agent.
+        The final response string from the agent. This is the content of the
+        last message in the conversation, or a string representation if content
+        is not available. Returns "No response generated." if no messages are
+        present in the final state.
+
+    Raises:
+        ValueError: If configuration validation fails (e.g., missing API key).
+
+    Note:
+        The agent workflow may execute multiple tool calls in a loop before
+        returning the final response. The conversation state is maintained
+        throughout the execution, allowing the agent to use tool results in
+        subsequent reasoning steps.
     """
     agent = create_agent(flags)
 

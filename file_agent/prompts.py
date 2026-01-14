@@ -157,11 +157,34 @@ Remember: Your goal is not just to process text, but to create learning material
 def get_system_prompt(flags: dict[str, bool] | None = None) -> str:
     """Get the system prompt with optional flag-based modifications.
 
+    Returns the base Learning Notes Assistant system prompt, optionally enhanced
+    with mode-specific instructions based on command flags. This allows the agent
+    to adapt its behavior for different output formats and complexity levels.
+
     Args:
-        flags: Dictionary of command flags (e.g., {"brief": True, "flashcards": True})
+        flags: Optional dictionary of command flags that modify the system prompt.
+            Supported flags:
+            - brief: Create ultra-concise summaries
+            - detailed: Provide comprehensive breakdowns
+            - beginner: Simplify for novice learners
+            - advanced: Include sophisticated analysis
+            - questions: Focus on generating test questions
+            - flashcards: Format as Q&A pairs
+            - cornell: Use Cornell note-taking format
+            - mindmap: Create text-based concept hierarchies
+            Multiple flags can be active simultaneously.
 
     Returns:
-        The system prompt string, optionally modified based on flags.
+        The system prompt string. If flags are provided, the base prompt is
+        appended with mode-specific instructions for each active flag. The prompt
+        defines the agent's persona, capabilities, and working principles.
+
+    Note:
+        The base prompt (LEARNING_NOTES_SYSTEM_PROMPT) defines the agent as a
+        Learning Notes Assistant specialized in processing study materials. Flag
+        modifications add context-specific instructions that guide the agent's
+        output format and complexity level. The prompt is used to initialize
+        the LLM in the agent workflow.
     """
     prompt = LEARNING_NOTES_SYSTEM_PROMPT
 

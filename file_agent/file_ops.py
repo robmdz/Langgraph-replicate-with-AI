@@ -16,12 +16,26 @@ console = Console()
 def create_file(path: str, content: str) -> dict[str, str | bool]:
     """Create a new file with the specified content.
 
+    Creates a new file at the specified path with the given content. The path
+    is validated to prevent directory traversal attacks, and parent directories
+    are created automatically if they don't exist. File size is checked against
+    the configured maximum.
+
     Args:
-        path: Path where the file should be created.
-        content: Content to write to the file.
+        path: Path where the file should be created (relative to current directory).
+            Parent directories will be created automatically if needed.
+        content: Content to write to the file. Must be UTF-8 encodable.
 
     Returns:
-        Dictionary with operation result: {"success": bool, "message": str, "path": str}
+        Dictionary with operation result containing:
+            - success (bool): True if the file was created successfully, False otherwise
+            - message (str): Success message or error description
+            - path (str): The resolved file path (absolute or relative)
+
+    Note:
+        Path validation prevents directory traversal attacks. File size must not
+        exceed MAX_FILE_SIZE configuration (default 10MB). All files are written
+        with UTF-8 encoding. If the file already exists, it will be overwritten.
     """
     try:
         # Validate and sanitize path
@@ -56,13 +70,29 @@ def edit_file(
 ) -> dict[str, str | bool]:
     """Edit an existing file.
 
+    Modifies an existing file by either replacing its entire content or appending
+    new content to the end. The file must exist before editing. File size after
+    the edit is checked against the configured maximum.
+
     Args:
-        path: Path to the file to edit.
-        content: Content to add or replace.
-        mode: Edit mode - "replace" to overwrite, "append" to add at the end.
+        path: Path to the file to edit (relative to current directory).
+            The file must already exist.
+        content: Content to add or replace. In replace mode, this becomes the
+            entire file content. In append mode, this is added after a newline.
+        mode: Edit mode - "replace" to overwrite the entire file, "append" to
+            add content at the end. Defaults to "replace".
 
     Returns:
-        Dictionary with operation result: {"success": bool, "message": str, "path": str}
+        Dictionary with operation result containing:
+            - success (bool): True if the file was edited successfully, False otherwise
+            - message (str): Success message or error description
+            - path (str): The resolved file path (absolute or relative)
+
+    Note:
+        The file must exist before editing. In append mode, a newline is inserted
+        between existing content and new content. File size after edit must not
+        exceed MAX_FILE_SIZE configuration. Path validation prevents directory
+        traversal attacks.
     """
     try:
         file_path = validate_path(path)
@@ -110,11 +140,33 @@ def edit_file(
 def show_file(path: str) -> dict[str, str | bool | dict]:
     """Display file contents with syntax highlighting.
 
+    Reads and returns the contents of a file along with metadata. The file must
+    exist and not exceed the maximum file size limit. Language for syntax
+    highlighting is automatically determined from the file extension.
+
     Args:
-        path: Path to the file to display.
+        path: Path to the file to display (relative to current directory).
+            The file must exist.
 
     Returns:
-        Dictionary with operation result and file metadata.
+        Dictionary with operation result containing:
+            - success (bool): True if the file was read successfully, False otherwise
+            - message (str): Success message or error description
+            - path (str): The resolved file path
+            - content (str): The file contents (only if success is True)
+            - metadata (dict): File metadata including:
+                - path (str): File path
+                - size (str): Human-readable file size
+                - modified (float): Modification timestamp
+                - extension (str): File extension
+            - language (str): Language identifier for syntax highlighting
+
+    Note:
+        The file must exist and not exceed MAX_FILE_SIZE configuration. Language
+        detection supports common file types (Python, JavaScript, TypeScript,
+        HTML, CSS, JSON, Markdown, YAML, TOML, Bash, Rust, Go, Java, C++, C).
+        Unknown extensions default to "text". Path validation prevents directory
+        traversal attacks.
     """
     try:
         file_path = validate_path(path)
@@ -185,12 +237,29 @@ def show_file(path: str) -> dict[str, str | bool | dict]:
 def delete_file(path: str, confirm: bool = False) -> dict[str, str | bool]:
     """Delete a file with optional confirmation.
 
+    Permanently deletes a file from the filesystem. This operation is irreversible.
+    The file must exist and deletion must be explicitly confirmed.
+
     Args:
-        path: Path to the file to delete.
-        confirm: Whether deletion is confirmed (should be True to actually delete).
+        path: Path to the file to delete (relative to current directory).
+            The file must exist.
+        confirm: Whether deletion is confirmed. Must be True to actually delete
+            the file. If False, the operation will fail with a confirmation error.
 
     Returns:
-        Dictionary with operation result: {"success": bool, "message": str, "path": str}
+        Dictionary with operation result containing:
+            - success (bool): True if the file was deleted successfully, False otherwise
+            - message (str): Success message or error description
+            - path (str): The resolved file path (absolute or relative)
+
+    Warning:
+        This operation is irreversible. Once a file is deleted, it cannot be
+        recovered. Always ensure you have backups if needed.
+
+    Note:
+        The file must exist before deletion. Only files can be deleted, not
+        directories. Path validation prevents directory traversal attacks.
+        Confirmation is required to prevent accidental deletions.
     """
     try:
         file_path = validate_path(path)
@@ -226,11 +295,29 @@ def delete_file(path: str, confirm: bool = False) -> dict[str, str | bool]:
 def list_directory(path: str | None = None) -> dict[str, str | bool | list]:
     """List directory contents.
 
+    Retrieves and returns a list of files and subdirectories in the specified
+    directory. Files include their sizes, directories are marked accordingly.
+    The listing is sorted alphabetically.
+
     Args:
-        path: Path to directory to list. If None, lists current directory.
+        path: Path to directory to list. If None, lists the current working
+            directory. The path must exist and be a directory.
 
     Returns:
-        Dictionary with operation result and directory contents.
+        Dictionary with operation result containing:
+            - success (bool): True if the directory was listed successfully, False otherwise
+            - message (str): Success message or error description
+            - path (str): The resolved directory path
+            - items (list): List of dictionaries, each containing:
+                - name (str): Item name
+                - type (str): "file" or "directory"
+                - size (str | None): Human-readable file size for files, None for directories
+
+    Note:
+        The path must exist and be a directory (not a file). Items are sorted
+        alphabetically. File sizes are formatted in human-readable format (B, KB,
+        MB, GB). Path validation prevents directory traversal attacks. Empty
+        directories return an empty items list.
     """
     try:
         if path is None:

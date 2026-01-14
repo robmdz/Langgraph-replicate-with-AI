@@ -33,7 +33,35 @@ def create(
     cornell: bool = typer.Option(False, "--cornell", help="Use Cornell note-taking format"),
     mindmap: bool = typer.Option(False, "--mindmap", help="Create text-based concept hierarchies"),
 ) -> None:
-    """Create a new file using natural language description."""
+    """Create a new file using natural language description.
+
+    This command uses the AI agent to create a new file based on a natural language
+    description. The agent interprets the prompt and generates appropriate file content,
+    which may include code, documentation, notes, or other text-based content.
+
+    Args:
+        prompt: Natural language description of the file to create. Examples:
+            "a Python script that prints hello world"
+            "a README file for a FastAPI project"
+            "study notes on quantum physics"
+        brief: If True, creates ultra-concise summaries. Useful for quick overviews.
+        detailed: If True, provides comprehensive breakdowns with extensive detail.
+        beginner: If True, simplifies content for novice learners.
+        advanced: If True, includes sophisticated analysis and technical depth.
+        questions: If True, focuses on generating test questions from content.
+        flashcards: If True, formats output as Q&A pairs suitable for flashcards.
+        cornell: If True, structures output in Cornell note-taking format.
+        mindmap: If True, creates text-based hierarchical concept maps.
+
+    Raises:
+        typer.Exit: Exits with code 1 if configuration validation fails or if
+            the agent encounters an error.
+
+    Note:
+        Multiple flags can be combined to customize the output format. The agent
+        will adapt its behavior based on the active flags. A progress indicator
+        is shown during file creation.
+    """
     flags = {
         "brief": brief,
         "detailed": detailed,
@@ -77,7 +105,37 @@ def edit(
     cornell: bool = typer.Option(False, "--cornell", help="Use Cornell note-taking format"),
     mindmap: bool = typer.Option(False, "--mindmap", help="Create text-based concept hierarchies"),
 ) -> None:
-    """Edit an existing file using natural language description."""
+    """Edit an existing file using natural language description.
+
+    This command uses the AI agent to modify an existing file based on a natural
+    language description. The agent reads the current file content, interprets
+    the edit request, and applies the changes appropriately.
+
+    Args:
+        file_path: Path to the file to edit (relative to current directory).
+            The file must exist.
+        prompt: Natural language description of the edit to make. Examples:
+            "add error handling to the main function"
+            "simplify the explanation for beginners"
+            "add a summary section at the top"
+        brief: If True, creates ultra-concise summaries. Useful for quick overviews.
+        detailed: If True, provides comprehensive breakdowns with extensive detail.
+        beginner: If True, simplifies content for novice learners.
+        advanced: If True, includes sophisticated analysis and technical depth.
+        questions: If True, focuses on generating test questions from content.
+        flashcards: If True, formats output as Q&A pairs suitable for flashcards.
+        cornell: If True, structures output in Cornell note-taking format.
+        mindmap: If True, creates text-based hierarchical concept maps.
+
+    Raises:
+        typer.Exit: Exits with code 1 if configuration validation fails, if
+            the file doesn't exist, or if the agent encounters an error.
+
+    Note:
+        The agent may read the file first to understand its current content before
+        making edits. Multiple flags can be combined to customize the edit behavior.
+        A progress indicator is shown during file editing.
+    """
     flags = {
         "brief": brief,
         "detailed": detailed,
@@ -112,7 +170,25 @@ def edit(
 def show(
     file_path: str = typer.Argument(..., help="Path to the file to display"),
 ) -> None:
-    """Display file contents with syntax highlighting."""
+    """Display file contents with syntax highlighting.
+
+    This command displays the contents of a file with syntax highlighting based
+    on the file extension. It also shows file metadata including path and size.
+
+    Args:
+        file_path: Path to the file to display (relative to current directory).
+            The file must exist and not exceed the maximum file size limit.
+
+    Raises:
+        typer.Exit: Exits with code 1 if the file doesn't exist, if the file
+            exceeds the maximum size limit, or if there's an error reading the file.
+
+    Note:
+        Syntax highlighting is automatically determined based on the file extension.
+        Supported languages include Python, JavaScript, TypeScript, HTML, CSS,
+        JSON, Markdown, YAML, TOML, Bash, Rust, Go, Java, C++, and C. Files
+        exceeding MAX_FILE_SIZE will not be displayed for safety reasons.
+    """
     result = show_file(file_path)
 
     if not result["success"]:
@@ -144,7 +220,37 @@ def chat(
     cornell: bool = typer.Option(False, "--cornell", help="Use Cornell note-taking format"),
     mindmap: bool = typer.Option(False, "--mindmap", help="Create text-based concept hierarchies"),
 ) -> None:
-    """Chat with the agent for general file operations and learning assistance."""
+    """Chat with the agent for general file operations and learning assistance.
+
+    This command provides a general-purpose interface to interact with the AI agent.
+    It can handle various file operations, answer questions, create project structures,
+    and provide learning assistance. The agent can perform multi-step operations and
+    use tools as needed.
+
+    Args:
+        prompt: Natural language prompt for the agent. Examples:
+            "create a project structure for a FastAPI app"
+            "explain how to use decorators in Python"
+            "generate practice questions for biology exam"
+        brief: If True, creates ultra-concise summaries. Useful for quick overviews.
+        detailed: If True, provides comprehensive breakdowns with extensive detail.
+        beginner: If True, simplifies content for novice learners.
+        advanced: If True, includes sophisticated analysis and technical depth.
+        questions: If True, focuses on generating test questions from content.
+        flashcards: If True, formats output as Q&A pairs suitable for flashcards.
+        cornell: If True, structures output in Cornell note-taking format.
+        mindmap: If True, creates text-based hierarchical concept maps.
+
+    Raises:
+        typer.Exit: Exits with code 1 if configuration validation fails or if
+            the agent encounters an error.
+
+    Note:
+        This is the most flexible command, allowing the agent to decide which
+        operations and tools to use based on the prompt. Multiple flags can be
+        combined to customize the output format. A progress indicator is shown
+        during processing.
+    """
     flags = {
         "brief": brief,
         "detailed": detailed,
@@ -179,7 +285,25 @@ def chat(
 def list(
     directory: str | None = typer.Argument(None, help="Directory to list (default: current directory)"),
 ) -> None:
-    """List directory contents."""
+    """List directory contents.
+
+    This command displays the contents of a directory in a formatted table,
+    showing files with their sizes and directories with folder indicators.
+
+    Args:
+        directory: Path to the directory to list. If None, lists the current
+            working directory. The path must exist and be a directory.
+
+    Raises:
+        typer.Exit: Exits with code 1 if the directory doesn't exist, if the
+            path is not a directory, or if there's an error listing the directory.
+
+    Note:
+        Files are displayed with their human-readable sizes. Directories are
+        marked with a folder icon. The listing is sorted alphabetically. Empty
+        directories display a message indicating they are empty. Path validation
+        prevents directory traversal attacks.
+    """
     result = list_directory(directory)
 
     if not result["success"]:
@@ -212,7 +336,22 @@ def main(
     ctx: typer.Context,
     version: bool = typer.Option(False, "--version", help="Show version and exit"),
 ) -> None:
-    """File Agent - AI-powered CLI for file operations."""
+    """File Agent - AI-powered CLI for file operations.
+
+    This is the main entry point for the File Agent CLI application. When invoked
+    without a subcommand, it displays help information and example commands.
+
+    Args:
+        ctx: Typer context object containing invocation information.
+        version: If True, displays the application version and exits.
+
+    Raises:
+        typer.Exit: Exits with code 0 after displaying version or help information.
+
+    Note:
+        This callback is invoked when no subcommand is provided. It shows a
+        welcome message and example commands to help users get started.
+    """
     if version:
         from file_agent import __version__
 

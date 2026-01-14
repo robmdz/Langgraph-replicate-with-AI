@@ -8,10 +8,32 @@ from dotenv import load_dotenv
 
 
 class Config:
-    """Manages application configuration and environment variables."""
+    """Manages application configuration and environment variables.
+
+    This class handles loading and managing configuration settings from environment
+    variables and .env files. It provides validation and access to configuration
+    values throughout the application.
+
+    Attributes:
+        openai_api_key: OpenAI API key for authentication. Loaded from
+            OPENAI_API_KEY environment variable. Required for operation.
+        openai_model: OpenAI model to use (e.g., "gpt-4o", "gpt-4"). Loaded from
+            OPENAI_MODEL environment variable, defaults to "gpt-4o".
+        max_file_size: Maximum file size in bytes. Loaded from MAX_FILE_SIZE
+            environment variable, defaults to 10485760 (10MB).
+    """
 
     def __init__(self) -> None:
-        """Initialize configuration by loading environment variables."""
+        """Initialize configuration by loading environment variables.
+
+        Loads configuration from environment variables, with support for .env files.
+        If a .env file exists in the current working directory, it will be loaded
+        automatically. Environment variables take precedence over .env file values.
+
+        Note:
+            The .env file is loaded from the current working directory. Environment
+            variables set in the shell take precedence over .env file values.
+        """
         # Load .env file if it exists
         env_path = Path.cwd() / ".env"
         if env_path.exists():
@@ -24,8 +46,18 @@ class Config:
     def validate(self) -> None:
         """Validate that required configuration is present.
 
+        Checks that all required configuration values are set. Currently, only
+        the OpenAI API key is required. Other settings have defaults.
+
         Raises:
-            ValueError: If required configuration is missing.
+            ValueError: If OPENAI_API_KEY is not set. The error message includes
+                instructions on how to set the API key via environment variable
+                or .env file.
+
+        Note:
+            This method should be called before using the agent to ensure all
+            required configuration is present. It's automatically called by
+            create_agent() in the agent module.
         """
         if not self.openai_api_key:
             raise ValueError(
@@ -36,11 +68,19 @@ class Config:
     def get_openai_api_key(self) -> str:
         """Get the OpenAI API key.
 
+        Retrieves the OpenAI API key from configuration. This method provides
+        a safe way to access the API key with validation.
+
         Returns:
-            The OpenAI API key.
+            The OpenAI API key as a string.
 
         Raises:
-            ValueError: If the API key is not set.
+            ValueError: If OPENAI_API_KEY is not configured. This ensures that
+                the API key is always present when needed.
+
+        Note:
+            This method should be used instead of directly accessing
+            self.openai_api_key to ensure the key is validated before use.
         """
         if not self.openai_api_key:
             raise ValueError("OPENAI_API_KEY is not configured")

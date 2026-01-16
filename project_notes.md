@@ -3,13 +3,14 @@
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
-2. [Architecture Deep Dive](#architecture-deep-dive)
-3. [Component Documentation](#component-documentation)
-4. [Data Flow](#data-flow)
-5. [Security Architecture](#security-architecture)
-6. [Development Workflow](#development-workflow)
-7. [Technical Decisions](#technical-decisions)
-8. [Future Enhancements](#future-enhancements)
+2. [Getting Started for Beginners](#getting-started-for-beginners)
+3. [Architecture Deep Dive](#architecture-deep-dive)
+4. [Component Documentation](#component-documentation)
+5. [Data Flow](#data-flow)
+6. [Security Architecture](#security-architecture)
+7. [Development Workflow](#development-workflow)
+8. [Technical Decisions](#technical-decisions)
+9. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -35,6 +36,282 @@ The File Agent is a command-line interface (CLI) application that leverages AI t
 - **Security First**: Path validation, file size limits, and input sanitization
 - **Beautiful CLI**: Rich terminal output with syntax highlighting, tables, and progress indicators
 - **Extensible Architecture**: Easy to add new tools, commands, and features
+
+---
+
+## Getting Started for Beginners
+
+This section provides a step-by-step guide for beginners to get started with the File Agent. If you're new to command-line tools or AI-powered applications, follow these instructions carefully.
+
+### Prerequisites
+
+Before you begin, make sure you have:
+
+1. **Python 3.10 or higher** installed on your system
+   - Check your version: `python3 --version` or `python --version`
+   - If not installed, download from [python.org](https://www.python.org/downloads/)
+
+2. **Poetry** installed (dependency management tool)
+   - Check if installed: `poetry --version`
+   - If not installed, run: `curl -sSL https://install.python-poetry.org | python3 -`
+   - Add Poetry to your PATH (instructions shown after installation)
+
+3. **OpenAI API Key**
+   - Sign up at [OpenAI Platform](https://platform.openai.com/)
+   - Navigate to API Keys section
+   - Create a new secret key
+   - Copy the key (you'll need it in the next step)
+
+### Installation Steps
+
+#### Step 1: Navigate to the Project Directory
+
+Open your terminal (Command Prompt on Windows, Terminal on Mac/Linux) and navigate to the project folder:
+
+```bash
+cd "Langgraph replicate with AI"
+```
+
+#### Step 2: Install Dependencies
+
+Install all required Python packages using Poetry:
+
+```bash
+poetry install
+```
+
+This may take a few minutes as it downloads and installs all dependencies.
+
+#### Step 3: Set Up Your API Key
+
+Create a `.env` file in the project root directory to store your OpenAI API key:
+
+**On Mac/Linux:**
+```bash
+echo "OPENAI_API_KEY=your_actual_api_key_here" > .env
+```
+
+**On Windows (Command Prompt):**
+```cmd
+echo OPENAI_API_KEY=your_actual_api_key_here > .env
+```
+
+**On Windows (PowerShell):**
+```powershell
+"OPENAI_API_KEY=your_actual_api_key_here" | Out-File -FilePath .env -Encoding utf8
+```
+
+**Important**: Replace `your_actual_api_key_here` with your actual OpenAI API key (the one you copied earlier).
+
+Alternatively, you can manually create a `.env` file using any text editor and add:
+```
+OPENAI_API_KEY=your_actual_api_key_here
+```
+
+#### Step 4: Install the Package
+
+Make the `file-agent` command available globally:
+
+```bash
+poetry run pip install -e .
+```
+
+Or activate the Poetry shell (recommended for beginners):
+
+```bash
+poetry shell
+```
+
+After running `poetry shell`, your terminal prompt will change, indicating you're in the Poetry environment.
+
+#### Step 5: Verify Installation
+
+Test that everything is set up correctly:
+
+```bash
+file-agent --help
+```
+
+You should see a list of available commands. If you see an error about the command not being found, make sure you're in the Poetry shell (`poetry shell`) or use `poetry run file-agent --help`.
+
+### Running Your First Command
+
+Now that everything is set up, let's run your first command!
+
+#### Example 1: Create a Simple File
+
+Create a Python script that prints "Hello, World!":
+
+```bash
+file-agent create "a Python script that prints hello world"
+```
+
+The agent will:
+1. Understand your request
+2. Create a new Python file (usually named something like `script.py` or `hello.py`)
+3. Add the code to print "Hello, World!"
+4. Display a success message
+
+#### Example 2: View a File
+
+To see the contents of a file that was created:
+
+```bash
+file-agent show script.py
+```
+
+Replace `script.py` with the actual filename created by the agent.
+
+#### Example 3: Edit a File
+
+Modify an existing file:
+
+```bash
+file-agent edit script.py "add a function that calculates the sum of two numbers"
+```
+
+The agent will read the file, add the requested functionality, and save the changes.
+
+#### Example 4: List Directory Contents
+
+See what files are in your current directory:
+
+```bash
+file-agent list
+```
+
+Or list a specific directory:
+
+```bash
+file-agent list /path/to/directory
+```
+
+#### Example 5: Chat with the Agent
+
+For more complex tasks, use the chat command:
+
+```bash
+file-agent chat "create a FastAPI project with a hello endpoint"
+```
+
+The agent can handle multi-step operations and will create multiple files if needed.
+
+### Understanding Command Structure
+
+All commands follow this pattern:
+
+```bash
+file-agent [command] [arguments] [flags]
+```
+
+- **`command`**: What you want to do (`create`, `edit`, `show`, `list`, `chat`)
+- **`arguments`**: Required information (file paths, descriptions)
+- **`flags`**: Optional modifiers (see below)
+
+### Useful Flags for Beginners
+
+Flags customize how the agent responds:
+
+- **`--beginner`**: Simplifies explanations and code for beginners
+  ```bash
+  file-agent create "explain how loops work" --beginner
+  ```
+
+- **`--brief`**: Creates concise, short summaries
+  ```bash
+  file-agent create "summarize this concept" --brief
+  ```
+
+- **`--detailed`**: Provides comprehensive, thorough explanations
+  ```bash
+  file-agent create "explain this topic" --detailed
+  ```
+
+### Common Beginner Workflows
+
+#### Creating Study Materials
+
+```bash
+# Create flashcards for studying
+file-agent create "flashcards about Python basics" --flashcards
+
+# Generate practice questions
+file-agent chat "create practice questions about functions" --questions
+
+# Create Cornell notes format
+file-agent create "Cornell notes about data structures" --cornell
+```
+
+#### Learning to Code
+
+```bash
+# Create a beginner-friendly Python tutorial
+file-agent create "Python tutorial for absolute beginners" --beginner
+
+# Get detailed explanations
+file-agent chat "explain how classes work in Python" --detailed
+```
+
+#### Managing Files
+
+```bash
+# Create a new project structure
+file-agent chat "create a simple web project with HTML, CSS, and JavaScript files"
+
+# Edit existing code
+file-agent edit main.py "add comments explaining what each function does"
+
+# Review what you've created
+file-agent list
+```
+
+### Troubleshooting for Beginners
+
+#### Problem: "Command not found" or "file-agent: command not found"
+
+**Solution**: Make sure you're in the Poetry shell:
+```bash
+poetry shell
+```
+
+Or use `poetry run` before each command:
+```bash
+poetry run file-agent create "hello world"
+```
+
+#### Problem: "OPENAI_API_KEY is not set"
+
+**Solution**: 
+1. Check that your `.env` file exists in the project root
+2. Verify the file contains: `OPENAI_API_KEY=your_key_here`
+3. Make sure there are no extra spaces or quotes around the key
+4. Restart your terminal and try again
+
+#### Problem: "Path is outside the allowed directory"
+
+**Solution**: The agent only works with files in your current directory and subdirectories. Don't use paths like `../../../` or absolute paths outside your project folder.
+
+#### Problem: Installation errors
+
+**Solution**: 
+1. Make sure Python 3.10+ is installed: `python3 --version`
+2. Update Poetry: `poetry self update`
+3. Try reinstalling: `poetry install --no-cache`
+
+### Next Steps
+
+Once you're comfortable with basic commands:
+
+1. **Explore Flags**: Try different flags to see how they change the output
+2. **Read the README**: Check `README.md` for more examples and advanced usage
+3. **Experiment**: Try creating different types of files and projects
+4. **Learn the Architecture**: Read the "Architecture Deep Dive" section to understand how it works
+
+### Getting Help
+
+- Check the main `README.md` file for detailed documentation
+- Review command help: `file-agent --help` or `file-agent [command] --help`
+- Look at the examples in this document and the README
 
 ---
 

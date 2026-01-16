@@ -1,12 +1,13 @@
 """LangGraph agent implementation for file operations."""
 
+import operator
 from typing import Annotated, Literal, TypedDict
 
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolExecutor, ToolInvocation
 
 from file_agent.config import config
 from file_agent.file_ops import create_file, delete_file, edit_file, list_directory, show_file
@@ -25,7 +26,7 @@ class AgentState(TypedDict):
             agent responses, and tool execution results.
     """
 
-    messages: Annotated[list[BaseMessage], "The conversation messages"]
+    messages: Annotated[list[BaseMessage], operator.add]
 
 
 # Define tools for the agent
@@ -195,8 +196,8 @@ tools = [
     list_directory_tool,
 ]
 
-# Create tool node
-tool_node = ToolNode(tools)
+# Create tool executor
+tool_executor = ToolExecutor(tools)
 
 
 def should_continue(state: AgentState) -> Literal["tools", "end"]:
@@ -276,8 +277,7 @@ def create_agent(flags: dict[str, bool] | None = None) -> StateGraph:
         """Call the LLM with the current state.
 
         This nested function is used as the agent node in the LangGraph workflow.
-        It invokes the LLM with the current conversation state, ensuring the
-        system prompt is included if not already present.
+        It invokes the LLM with the current conversation state.
 
         Args:
             state: Current agent state containing conversation messages.
@@ -288,25 +288,62 @@ def create_agent(flags: dict[str, bool] | None = None) -> StateGraph:
             to use tools.
 
         Note:
-            The system prompt is automatically prepended if the first message
-            is not already a SystemMessage. The LLM has tools bound to it, so it
-            can decide to call tools based on the conversation context.
+            The system prompt should already be in the state from initialization.
+            The LLM has tools bound to it, so it can decide to call tools based
+            on the conversation context.
         """
         messages = state["messages"]
-
-        # Add system message if not present
-        if not messages or not isinstance(messages[0], SystemMessage):
-            messages = [SystemMessage(content=system_prompt)] + messages
-
         response = llm_with_tools.invoke(messages)
         return {"messages": [response]}
+
+    def call_tools(state: AgentState) -> AgentState:
+        """Execute tool calls from the agent.
+
+        This function processes tool calls from the agent's response and executes
+        them using the ToolExecutor. It extracts tool invocations from the last
+        message and returns ToolMessages with the results.
+
+        Args:
+            state: Current agent state containing conversation messages with tool calls.
+
+        Returns:
+            Updated state dictionary with ToolMessages containing tool execution results.
+        """
+        messages = state["messages"]
+        last_message = messages[-1]
+
+        # Extract tool calls and execute them
+        tool_messages = []
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            for tool_call in last_message.tool_calls:
+                # Extract tool name and arguments
+                tool_name = tool_call.get("name") if isinstance(tool_call, dict) else getattr(tool_call, "name", "")
+                tool_args = tool_call.get("args") if isinstance(tool_call, dict) else getattr(tool_call, "args", {})
+                tool_call_id = tool_call.get("id") if isinstance(tool_call, dict) else getattr(tool_call, "id", "")
+
+                # Create ToolInvocation and execute
+                tool_invocation = ToolInvocation(
+                    tool=tool_name,
+                    tool_input=tool_args,
+                )
+                result = tool_executor.invoke(tool_invocation)
+
+                # Create ToolMessage with result
+                tool_messages.append(
+                    ToolMessage(
+                        content=str(result),
+                        tool_call_id=tool_call_id,
+                    )
+                )
+
+        return {"messages": tool_messages}
 
     # Create graph
     workflow = StateGraph(AgentState)
 
     # Add nodes
     workflow.add_node("agent", call_model)
-    workflow.add_node("tools", tool_node)
+    workflow.add_node("tools", call_tools)
 
     # Set entry point
     workflow.set_entry_point("agent")
@@ -356,11 +393,17 @@ def run_agent(prompt: str, flags: dict[str, bool] | None = None) -> str:
         throughout the execution, allowing the agent to use tool results in
         subsequent reasoning steps.
     """
+    # Get system prompt (needed for initial state)
+    system_prompt = get_system_prompt(flags)
+    
     agent = create_agent(flags)
 
-    # Initialize state
+    # Initialize state with system message and user prompt
     initial_state: AgentState = {
-        "messages": [HumanMessage(content=prompt)],
+        "messages": [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=prompt),
+        ],
     }
 
     # Run agent

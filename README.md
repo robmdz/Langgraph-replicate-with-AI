@@ -20,6 +20,64 @@ A command-line interface (CLI) application that uses an AI agent to create, edit
 
 ### Step-by-Step Installation
 
+#### Option 1: Quick Install Script (Easiest)
+
+Run the installation script from the project directory:
+
+```bash
+cd "/home/robinson-working/Langgraph replicate with AI"
+./install-global.sh
+```
+
+This script will:
+- Install dependencies with Poetry
+- Create a symlink in `~/.local/bin`
+- Check if your PATH is configured correctly
+
+After running, you can use `file-agent` from any directory!
+
+#### Option 2: Global Installation with pipx (Recommended for production)
+
+This method installs `file-agent` globally so you can use it from any directory:
+
+1. **Install pipx** (if not already installed):
+   ```bash
+   # On Ubuntu/Debian
+   sudo apt install pipx
+   pipx ensurepath
+   
+   # On macOS
+   brew install pipx
+   pipx ensurepath
+   ```
+
+2. **Install file-agent globally**:
+   ```bash
+   cd "Langgraph replicate with AI"
+   pipx install .
+   ```
+
+3. **Set up environment variables**:
+   Create a `.env` file in your home directory or any directory where you'll use the tool:
+   ```bash
+   echo "OPENAI_API_KEY=your_api_key_here" > ~/.env
+   ```
+   
+   Or set it in your shell profile (`~/.bashrc` or `~/.zshrc`):
+   ```bash
+   export OPENAI_API_KEY=your_api_key_here
+   ```
+
+Now you can use `file-agent` from anywhere:
+```bash
+cd /any/directory
+file-agent create "a Python script"
+```
+
+#### Option 2: Development Installation with Poetry
+
+For development or if you prefer Poetry:
+
 1. **Clone the repository** (or navigate to the project directory):
    ```bash
    cd "Langgraph replicate with AI"
@@ -40,20 +98,42 @@ A command-line interface (CLI) application that uses an AI agent to create, edit
    ```bash
    echo "OPENAI_API_KEY=your_api_key_here" > .env
    ```
+
+5. **Use the command**:
+   ```bash
+   # Option A: Use poetry run (works from any directory)
+   poetry run file-agent create "a Python script"
    
-   Or set it in your environment:
-   ```bash
-   export OPENAI_API_KEY=your_api_key_here
-   ```
-
-5. **Install the package** (for development):
-   ```bash
-   poetry run pip install -e .
-   ```
-
-   Or activate the Poetry shell:
-   ```bash
+   # Option B: Activate Poetry shell (works from any directory after activation)
    poetry shell
+   file-agent create "a Python script"
+   
+   # Option C: Add Poetry's bin to PATH (add to ~/.bashrc or ~/.zshrc)
+   export PATH="$HOME/.local/share/pypoetry/venv/bin:$PATH"
+   # Then reload your shell or run: source ~/.bashrc
+   ```
+
+#### Option 3: Virtual Environment Installation
+
+If you prefer a traditional virtual environment:
+
+1. **Create and activate a virtual environment**:
+   ```bash
+   cd "Langgraph replicate with AI"
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+2. **Install the package**:
+   ```bash
+   pip install -e .
+   ```
+
+3. **Set up environment variables** (same as Option 1)
+
+4. **Use the command** (only works when venv is activated):
+   ```bash
+   file-agent create "a Python script"
    ```
 
 ## Configuration

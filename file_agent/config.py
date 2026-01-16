@@ -27,17 +27,28 @@ class Config:
         """Initialize configuration by loading environment variables.
 
         Loads configuration from environment variables, with support for .env files.
-        If a .env file exists in the current working directory, it will be loaded
-        automatically. Environment variables take precedence over .env file values.
+        Checks multiple locations for .env file in this order:
+        1. Current working directory (.env)
+        2. Home directory (~/.env)
+        3. Project directory (where file_agent package is located)
+
+        Environment variables take precedence over .env file values.
 
         Note:
-            The .env file is loaded from the current working directory. Environment
-            variables set in the shell take precedence over .env file values.
+            The .env file is loaded from multiple locations to support global usage.
+            Environment variables set in the shell take precedence over .env file values.
         """
-        # Load .env file if it exists
-        env_path = Path.cwd() / ".env"
-        if env_path.exists():
-            load_dotenv(env_path)
+        # Try to load .env file from multiple locations (in order of precedence)
+        env_paths = [
+            Path.cwd() / ".env",  # Current working directory
+            Path.home() / ".env",  # Home directory
+            Path(__file__).parent.parent / ".env",  # Project root directory
+        ]
+        
+        for env_path in env_paths:
+            if env_path.exists():
+                load_dotenv(env_path)
+                break  # Use the first .env file found
 
         self.openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
         self.openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o")

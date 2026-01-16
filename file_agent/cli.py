@@ -1,6 +1,7 @@
 """CLI interface for the File Agent using Typer and Rich."""
 
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -283,7 +284,7 @@ def chat(
 
 @app.command()
 def list(
-    directory: str | None = typer.Argument(None, help="Directory to list (default: current directory)"),
+    directory: Optional[str] = typer.Argument(None, help="Directory to list (default: current directory)"),
 ) -> None:
     """List directory contents.
 
